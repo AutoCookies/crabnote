@@ -113,6 +113,7 @@ const slashCommands = [
     { label: 'Bullet List', icon: 'list', syntax: '- ', search: 'bullet list' },
     { label: 'Numbered List', icon: 'list-ordered', syntax: '1. ', search: 'number list' },
     { label: 'Code Block', icon: 'code', syntax: '```\n\n```', search: 'code block snippet' },
+    { label: 'Table', icon: 'table', syntax: '| Column 1 | Column 2 |\n| -------- | -------- |\n| Cell 1 | Cell 2 |', search: 'table grid board' },
     { label: 'Divider', icon: 'minus', syntax: '\n---\n', search: 'divider horizontal rule' }
 ];
 
@@ -581,18 +582,43 @@ async function renderPreview() {
                 <pre class="language-cpp" data-path="${filePath}"><code class="language-cpp">${fileContent}</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
                 <div class="embed-footer">${filePath}</div>
             `);
-        } else {
-            codeBlocks.push(`
-                <pre class="language-${lang}"><code>${code}</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
-            `);
         }
         
         content = content.slice(0, match.index) + placeholder + content.slice(codeRegex.lastIndex);
         codeRegex.lastIndex = match.index + placeholder.length;
     }
 
-    // Replace newlines with <br> EXCEPT in placeholders
-    content = content.split(/\n/).map(line => line.startsWith('__CODE_BLOCK_') ? line : line + '<br>').join('');
+    // 5. Table Parser
+    const tableRegex = /^\|(.+)\|$\n^\|([- :|]+)\|$\n(^\|(.+)\|$\n?)+/gm;
+    content = content.replace(tableRegex, (match) => {
+        const rows = match.trim().split('\n');
+        const headerRow = rows[0].split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim());
+        const bodyRows = rows.slice(2).map(row => row.split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim()));
+
+        let html = '<div class="table-container"><table><thead><tr>';
+        headerRow.forEach(header => {
+            html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        bodyRows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                html += `<td>${cell}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        return html;
+    });
+
+    // Replace newlines with <br> EXCEPT in placeholders and table containers
+    content = content.split(/\n/).map(line => {
+        if (line.startsWith('__CODE_BLOCK_')) return line;
+        if (line.includes('<div class="table-container">') || line.includes('</div>') || line.includes('<table>') || line.includes('</table>') || line.includes('<tr>') || line.includes('</tr>') || line.includes('<td>') || line.includes('</td>') || line.includes('<th>') || line.includes('</th>') || line.includes('<thead>') || line.includes('</thead>') || line.includes('<tbody>') || line.includes('</tbody>')) return line;
+        return line + '<br>';
+    }).join('');
     
     // Restore code blocks
     codeBlocks.forEach((html, i) => {
@@ -962,6 +988,15 @@ async function deleteNoteById(id) {
 // Select a note
 // Select a note
 async function selectNote(id) {
+    // 0. Stash current note's unsaved changes into memory before switching
+    if (currentNoteId !== null) {
+        const currentNote = notes.find(n => n.id === currentNoteId);
+        if (currentNote) {
+            currentNote.title = noteTitleInput.value;
+            currentNote.content = noteBodyInput.value;
+        }
+    }
+
     // 1. Unwatch current files immediately
     for (const path of currentWatchedFiles) {
         if (window.crabNote.unwatchFile) window.crabNote.unwatchFile(path);
