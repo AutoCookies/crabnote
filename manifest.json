@@ -1,0 +1,45 @@
+{
+    "id": "crabnote",
+    "name": "Crab Note",
+    "version": "1.0.0",
+    "description": "Blazing-fast, strictly local, offline-first note-taking.",
+    "agent_tools": [
+        {
+            "name": "create_note",
+            "description": "Create a new note in the local workspace.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the note"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "The markdown content"
+                    }
+                },
+                "required": [
+                    "title",
+                    "content"
+                ]
+            }
+        },
+        {
+            "name": "search_notes",
+            "description": "Search through saved notes using keywords.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search term"
+                    }
+                },
+                "required": [
+                    "query"
+                ]
+            }
+        }
+    ]
+}
