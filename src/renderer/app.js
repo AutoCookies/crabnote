@@ -536,9 +536,18 @@ async function renderPreview() {
         return `<span class="wiki-link" data-title="${title}">${title}</span>`;
     });
     
-    // 3. Very basic markdown (bold/italic)
-    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // 3. Markdown Formatting (Headings, Bold, Italic, HR)
+    // Headings (only at start of line)
+    content = content.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    content = content.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    content = content.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+
+    // Horizontal Rule
+    content = content.replace(/^---$/gm, '<hr>');
+
+    // Bold/Italic as requested: *bold*, _italic_
+    content = content.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+    content = content.replace(/_(.*?)_/g, '<em>$1</em>');
 
     // 3.5 Interactive Checklists
     // We parse these before the code block protection if they are simple, 
@@ -579,8 +588,12 @@ async function renderPreview() {
                     <span>${filePath.split(/[\\/]/).pop()}</span>
                     <span style="font-size: 10px; opacity: 0.6;">LIVE</span>
                 </div>
-                <pre class="language-cpp" data-path="${filePath}"><code class="language-cpp">${fileContent}</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+                <pre class="language-cpp" data-path="${filePath}"><code class="language-cpp">${fileContent}</code><button class="copy-btn">Copy</button></pre>
                 <div class="embed-footer">${filePath}</div>
+            `);
+        } else {
+            codeBlocks.push(`
+                <pre class="language-${lang}"><code>${code}</code><button class="copy-btn">Copy</button></pre>
             `);
         }
         
@@ -613,10 +626,11 @@ async function renderPreview() {
         return html;
     });
 
-    // Replace newlines with <br> EXCEPT in placeholders and table containers
+    // Replace newlines with <br> EXCEPT in placeholders and table containers/block elements
     content = content.split(/\n/).map(line => {
-        if (line.startsWith('__CODE_BLOCK_')) return line;
+        if (line.includes('__CODE_BLOCK_')) return line;
         if (line.includes('<div class="table-container">') || line.includes('</div>') || line.includes('<table>') || line.includes('</table>') || line.includes('<tr>') || line.includes('</tr>') || line.includes('<td>') || line.includes('</td>') || line.includes('<th>') || line.includes('</th>') || line.includes('<thead>') || line.includes('</thead>') || line.includes('<tbody>') || line.includes('</tbody>')) return line;
+        if (line.includes('<h1>') || line.includes('</h1>') || line.includes('<h2>') || line.includes('</h2>') || line.includes('<h3>') || line.includes('</h3>') || line.includes('<hr>')) return line;
         return line + '<br>';
     }).join('');
     
@@ -629,6 +643,16 @@ async function renderPreview() {
     
     // Highlight all blocks
     if (window.Prism) Prism.highlightAllUnder(notePreview);
+
+    // Event Delegation for Copy Buttons (Avoids CSP issues with inline onclick)
+    notePreview.querySelectorAll('.copy-btn').forEach(btn => {
+        // Remove old and add new to avoid duplicates if re-rendered? 
+        // Actually since we set innerHTML it's fine.
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyCode(btn);
+        });
+    });
 
     // Add click listeners to wiki-links
     notePreview.querySelectorAll('.wiki-link').forEach(link => {

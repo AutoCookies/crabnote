@@ -951,6 +951,34 @@ tr:hover td {
     background-color: var(--hover-color);
 }
 
+/* --- Headings --- */
+.editor-preview h1 {
+    font-size: 2em;
+    margin: 0.8em 0 0.5em;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.3em;
+}
+
+.editor-preview h2 {
+    font-size: 1.5em;
+    margin: 0.8em 0 0.4em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.editor-preview h3 {
+    font-size: 1.25em;
+    margin: 0.8em 0 0.4em;
+}
+
+/* --- Horizontal Rule --- */
+.editor-preview hr {
+    border: none;
+    border-top: 2px solid var(--border-color);
+    margin: 2em 0;
+    opacity: 0.5;
+}
+
 .editor-preview.hidden {
     display: none;
 }
