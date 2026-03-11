@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'">
+    <title>Crab Note</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="lib/prism.css">
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="lib/prism.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+            <div class="sidebar-title">
+                <img src="../../assets/logo.png" alt="Crab" width="24" height="24">
+                <span>Crab Note</span>
+            </div>
+            <button id="toggle-sidebar" title="Collapse Sidebar" class="icon-button">
+                <i data-lucide="chevron-left"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar-tools">
+            <button id="today-btn" class="tool-btn">
+                <i data-lucide="calendar"></i>
+                <span>Today</span>
+            </button>
+            <button id="new-note-btn" class="tool-btn primary">
+                <i data-lucide="plus"></i>
+                <span>New Note</span>
+            </button>
+        </div>
+
+            <div class="sidebar-nav">
+                <div class="nav-section">
+                    <h3 class="section-title">NOTES</h3>
+                    <ul id="note-list" class="note-list">
+                        <!-- Notes will be injected here -->
+                    </ul>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="theme-switcher">
+                    <button class="theme-btn" data-theme="dark" title="Dark Mode">🌙</button>
+                    <button class="theme-btn" data-theme="light" title="Light Mode">☀️</button>
+                    <button class="theme-btn" data-theme="beach" title="Beach Mode">🏖️</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Editor Canvas -->
+        <main class="editor-container">
+            <!-- Sidebar show button (visible when sidebar is hidden) -->
+            <button id="show-sidebar" class="icon-button sidebar-float-btn hidden" aria-label="Show Sidebar">
+                <i data-lucide="menu"></i>
+            </button>
+            
+            <div class="editor-header">
+                <div class="status-indicator" id="save-status">Saved</div>
+            </div>
+
+            <div class="editor-content">
+                <input type="text" id="note-title-input" class="editor-title" placeholder="Untitled">
+                <div class="editor-body-container">
+                    <textarea id="note-body-input" class="editor-body" placeholder="Start typing..."></textarea>
+                    <div id="note-preview" class="editor-preview hidden"></div>
+                </div>
+                <button id="toggle-preview" class="preview-toggle-btn">Preview</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Quick Switcher Modal -->
+    <div id="quick-switcher-overlay" class="modal-overlay hidden">
+        <div class="quick-switcher">
+            <div class="search-input-container">
+                <i data-lucide="search"></i>
+                <input type="text" id="quick-switcher-input" placeholder="Search notes..." autocomplete="off">
+            </div>
+            <div id="quick-switcher-results" class="search-results">
+                <!-- Search results will be injected here -->
+            </div>
+            <div class="switcher-footer">
+                <span><kbd>↑↓</kbd> to navigate</span>
+                <span><kbd>↵</kbd> to open</span>
+                <span><kbd>esc</kbd> to close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wiki-link suggestion popover -->
+    <div id="wiki-link-popover" class="wiki-popover hidden">
+        <ul id="wiki-link-results" class="wiki-list"></ul>
+    </div>
+
+    <!-- Tag Editor Modal -->
+    <div id="tag-editor-overlay" class="modal-overlay hidden">
+        <div class="tag-editor-modal">
+            <div class="modal-header">
+                <i data-lucide="tag"></i>
+                <h3 id="tag-modal-title">Edit Tags</h3>
+            </div>
+            <div class="modal-body">
+                <p id="tag-modal-desc">Enter tags separated by commas</p>
+                <input type="text" id="tag-editor-input" placeholder="e.g. work, ideas, urgent" autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button id="tag-modal-cancel" class="tool-btn">Cancel</button>
+                <button id="tag-modal-save" class="tool-btn primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slash Command Menu -->
+    <div id="slash-menu" class="slash-menu hidden">
+        <ul id="slash-menu-list" class="slash-list"></ul>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu-overlay" class="context-menu-overlay hidden"></div>
+    <div id="context-menu" class="context-menu hidden">
+        <div class="context-menu-item" id="ctx-delete-note">
+            <i data-lucide="trash-2"></i>
+            <span>Delete Note</span>
+        </div>
+        <div class="context-menu-item" id="ctx-edit-tags">
+            <i data-lucide="tag"></i>
+            <span>Edit Note's Tags</span>
+        </div>
+        <div class="context-menu-item" id="ctx-rename-tag">
+            <i data-lucide="edit-3"></i>
+            <span>Rename Tag Globally</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

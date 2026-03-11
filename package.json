@@ -1,0 +1,50 @@
+{
+  "name": "crab-note",
+  "version": "1.0.0",
+  "description": "A blazing-fast, strictly local, offline-first note-taking application.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "npm run build:backend && electron-builder",
+    "build:backend": "scripts\\build-backend.bat"
+  },
+  "build": {
+    "appId": "com.crabnote.app",
+    "productName": "CrabNote",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "assets/favicon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/favicon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/favicon.ico"
+    }
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1"
+  }
+}
