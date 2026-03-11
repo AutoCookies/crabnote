@@ -2,7 +2,15 @@
 let notes = [];
 let groupedNotes = []; // New state for sidebar grouping
 let currentNoteId = null;
+let dirtyNoteIds = new Set(); // Track note IDs with unsaved changes
 let expandedTags = new Set(JSON.parse(localStorage.getItem('crabnote-expanded-tags') || '["Untagged"]'));
+
+// Settings State
+let appSettings = JSON.parse(localStorage.getItem('crabnote-settings') || JSON.stringify({
+    autoSave: true,
+    saveInterval: 60000, // default 1 minute
+    theme: 'dark'
+}));
 
 // DOM Elements
 const sidebar = document.getElementById('sidebar');
@@ -14,6 +22,15 @@ const noteBodyInput = document.getElementById('note-body-input');
 const newNoteBtn = document.getElementById('new-note-btn');
 const todayBtn = document.getElementById('today-btn');
 const saveStatus = document.getElementById('save-status');
+const tabBar = document.getElementById('tab-bar');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsOverlay = document.getElementById('settings-overlay');
+const settingsModalClose = document.getElementById('settings-modal-close');
+const autoSaveToggle = document.getElementById('auto-save-toggle');
+const saveIntervalSelect = document.getElementById('save-interval');
+const saveIntervalRow = document.getElementById('auto-save-interval-row');
+
+let openNoteIds = []; // Array of note IDs currently open as tabs
 
 // Debounce helper for auto-saving
 function debounce(func, wait) {
@@ -98,6 +115,14 @@ const slashCommands = [
     { label: 'Code Block', icon: 'code', syntax: '```\n\n```', search: 'code block snippet' },
     { label: 'Divider', icon: 'minus', syntax: '\n---\n', search: 'divider horizontal rule' }
 ];
+
+// Unsaved Changes Modal DOM
+const unsavedOverlay = document.getElementById('unsaved-changes-overlay');
+const unsavedDesc = document.getElementById('unsaved-modal-desc');
+const unsavedCancel = document.getElementById('unsaved-modal-cancel');
+const unsavedDiscard = document.getElementById('unsaved-modal-discard');
+const unsavedSave = document.getElementById('unsaved-modal-save');
+let tabIdToClose = null;
 
 // Sidebar toggle logic
 function toggleSidebar() {
@@ -926,6 +951,7 @@ async function deleteNoteById(id) {
                 }
             }
             renderNotesList();
+            closeTab(id); // Close the tab if deleted
             saveStatus.textContent = 'Note deleted';
         } else {
             saveStatus.textContent = 'Delete failed';
@@ -942,7 +968,23 @@ async function selectNote(id) {
     }
     currentWatchedFiles.clear();
 
+    // Add to open tabs if not already there
+    if (!openNoteIds.includes(id)) {
+        if (currentNoteId !== null && !dirtyNoteIds.has(currentNoteId) && openNoteIds.includes(currentNoteId)) {
+            // Replace the current "clean" tab with the new one
+            const index = openNoteIds.indexOf(currentNoteId);
+            if (index !== -1) {
+                openNoteIds[index] = id;
+            } else {
+                openNoteIds.push(id);
+            }
+        } else {
+            openNoteIds.push(id);
+        }
+    }
+
     currentNoteId = id;
+
     const note = notes.find(n => n.id === id);
 
     if (note) {
@@ -956,7 +998,111 @@ async function selectNote(id) {
     }
 
     renderNotesList(); // Update active state
+    renderTabs(); // Update tab bar
 }
+
+// Render the tab bar
+function renderTabs() {
+    if (!tabBar) return;
+    tabBar.innerHTML = '';
+
+    openNoteIds.forEach(id => {
+        const note = notes.find(n => n.id === id);
+        if (!note && id !== 0) return; // Note might have been deleted
+
+        const tab = document.createElement('div');
+        tab.className = `tab ${id === currentNoteId ? 'active' : ''}`;
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'tab-title';
+        titleSpan.textContent = (id === 0 ? 'Untitled' : (note ? note.title : 'Untitled')) || 'Untitled';
+        
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'tab-close';
+        closeBtn.innerHTML = '<i data-lucide="x"></i>';
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeTab(id);
+        });
+
+        tab.addEventListener('click', () => {
+            selectNote(id);
+        });
+
+        tab.appendChild(titleSpan);
+        tab.appendChild(closeBtn);
+        tabBar.appendChild(tab);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// Close a tab
+async function closeTab(id, force = false) {
+    if (!force && dirtyNoteIds.has(id)) {
+        const note = notes.find(n => n.id === id);
+        tabIdToClose = id;
+        unsavedDesc.textContent = `"${(id === 0 ? 'Untitled' : (note ? note.title : 'Untitled')) || 'Untitled'}" has unsaved changes. Do you want to save them before closing?`;
+        unsavedOverlay.classList.remove('hidden');
+        return;
+    }
+
+    const index = openNoteIds.indexOf(id);
+    if (index === -1) return;
+
+    openNoteIds.splice(index, 1);
+    dirtyNoteIds.delete(id); // Clean up dirty state if closing anyway
+
+    if (currentNoteId === id) {
+        if (openNoteIds.length > 0) {
+            // Switch to the next available tab or the previous one
+            const nextId = openNoteIds[index] || openNoteIds[index - 1];
+            await selectNote(nextId);
+        } else {
+            // No more tabs, show empty state or create new note
+            currentNoteId = null;
+            noteTitleInput.value = '';
+            noteBodyInput.value = '';
+            renderNotesList();
+            renderTabs();
+        }
+    } else {
+        renderTabs();
+    }
+}
+
+// Unsaved Modal Handlers
+unsavedCancel.addEventListener('click', () => {
+    unsavedOverlay.classList.add('hidden');
+    tabIdToClose = null;
+});
+
+unsavedDiscard.addEventListener('click', () => {
+    unsavedOverlay.classList.add('hidden');
+    if (tabIdToClose !== null) {
+        closeTab(tabIdToClose, true);
+        tabIdToClose = null;
+    }
+});
+
+unsavedSave.addEventListener('click', async () => {
+    unsavedOverlay.classList.add('hidden');
+    if (tabIdToClose !== null) {
+        // If it's the current note, we can just save it.
+        // If it's a background tab, we'd need to switch to it or handle partial save.
+        // For now, let's assume we save the target note.
+        const id = tabIdToClose;
+        if (id === currentNoteId) {
+            await performSave();
+        } else {
+            // Partial support: switch to it then save
+            await selectNote(id);
+            await performSave();
+        }
+        closeTab(id, true);
+        tabIdToClose = null;
+    }
+});
 
 // Create new note
 function createNewNote() {
@@ -967,6 +1113,12 @@ function createNewNote() {
         tags: []
     };
     notes.unshift(newNote); // Add to top of list
+    
+    // For new note, we add it to tabs if not already opening one
+    if (!openNoteIds.includes(0)) {
+        openNoteIds.push(0);
+    }
+    
     selectNote(newNote.id);
     noteTitleInput.focus();
 }
@@ -974,7 +1126,7 @@ function createNewNote() {
 newNoteBtn.addEventListener('click', createNewNote);
 
 // Save logic
-const saveCurrentNote = debounce(async () => {
+async function performSave() {
     if (currentNoteId === null) return;
 
     saveStatus.textContent = 'Saving...';
@@ -992,10 +1144,22 @@ const saveCurrentNote = debounce(async () => {
             if (response && response.success) {
                 const savedNote = response.data;
                 if (notes[noteIndex].id === 0) {
+                    const tabIndex = openNoteIds.indexOf(0);
+                    if (tabIndex !== -1) openNoteIds[tabIndex] = savedNote.id;
+                    
+                    // Update dirtyNoteIds mapping if it was 0
+                    if (dirtyNoteIds.has(0)) {
+                        dirtyNoteIds.delete(0);
+                        dirtyNoteIds.add(savedNote.id);
+                    }
+
                     notes[noteIndex].id = savedNote.id;
                     currentNoteId = savedNote.id;
-                    renderNotesList(); // Re-render to bind the new ID to click events
+                    dirtyNoteIds.delete(savedNote.id);
+                    renderNotesList();
+                    renderTabs();
                 }
+                dirtyNoteIds.delete(notes[noteIndex].id);
                 saveStatus.textContent = 'Saved';
             } else {
                 saveStatus.textContent = 'Save Failed. Retrying...';
@@ -1003,15 +1167,75 @@ const saveCurrentNote = debounce(async () => {
             }
         }
     }
-}, 3000);
+}
+
+// Global debounced save function that can be updated based on settings
+let debouncedSave = debounce(performSave, appSettings.saveInterval);
+
+function saveCurrentNote(isManual = false) {
+    if (isManual) {
+        performSave();
+    } else if (appSettings.autoSave) {
+        debouncedSave();
+    }
+}
+
+// Manual Save (Ctrl+S)
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveCurrentNote(true);
+    }
+});
+
+// Settings Modal Logic
+function openSettings() {
+    autoSaveToggle.checked = appSettings.autoSave;
+    saveIntervalSelect.value = appSettings.saveInterval >= 60000 ? appSettings.saveInterval : 60000;
+    saveIntervalRow.style.display = appSettings.autoSave ? 'flex' : 'none';
+    settingsOverlay.classList.remove('hidden');
+}
+
+function closeSettings() {
+    settingsOverlay.classList.add('hidden');
+}
+
+settingsBtn.addEventListener('click', openSettings);
+settingsModalClose.addEventListener('click', closeSettings);
+settingsOverlay.addEventListener('mousedown', (e) => {
+    if (e.target === settingsOverlay) closeSettings();
+});
+
+autoSaveToggle.addEventListener('change', () => {
+    appSettings.autoSave = autoSaveToggle.checked;
+    saveIntervalRow.style.display = appSettings.autoSave ? 'flex' : 'none';
+    saveSettings();
+});
+
+saveIntervalSelect.addEventListener('change', () => {
+    appSettings.saveInterval = parseInt(saveIntervalSelect.value);
+    saveSettings();
+});
+
+function saveSettings() {
+    localStorage.setItem('crabnote-settings', JSON.stringify(appSettings));
+    // Update debounced function with new interval
+    debouncedSave = debounce(performSave, appSettings.saveInterval);
+}
 
 // Input listeners
 noteTitleInput.addEventListener('input', () => {
+    if (currentNoteId !== null) dirtyNoteIds.add(currentNoteId);
     saveStatus.textContent = 'Unsaved changes';
+    
+    // Update tab title live
+    renderTabs();
+    
     saveCurrentNote();
 });
 
 noteBodyInput.addEventListener('input', () => {
+    if (currentNoteId !== null) dirtyNoteIds.add(currentNoteId);
     saveStatus.textContent = 'Unsaved changes';
     saveCurrentNote();
 });
