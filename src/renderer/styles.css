@@ -397,8 +397,6 @@ html, body, .app-container {
     flex-direction: column;
     background-color: var(--bg-primary);
     position: relative;
-    max-width: 900px;
-    margin: 0 auto;
     width: 100%;
 }
 

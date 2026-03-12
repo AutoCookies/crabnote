@@ -49,7 +49,7 @@ function debounce(func, wait) {
 function setTheme(themeName) {
     document.documentElement.setAttribute('data-theme', themeName);
     localStorage.setItem('crabnote-theme', themeName);
-    
+
     // Update UI buttons
     document.querySelectorAll('.theme-btn').forEach(btn => {
         if (btn.getAttribute('data-theme') === themeName) {
@@ -204,7 +204,7 @@ qsInput.addEventListener('input', debounce(async (e) => {
 function renderQSResults() {
     qsResults.innerHTML = '';
     qsSelectedIndex = 0;
-    
+
     qsResultsData.forEach((result, index) => {
         const div = document.createElement('div');
         div.className = `search-result-item ${index === 0 ? 'selected' : ''}`;
@@ -251,7 +251,7 @@ noteBodyInput.addEventListener('input', (e) => {
     const value = e.target.value;
     const selectionStart = e.target.selectionStart;
     const textBefore = value.substring(0, selectionStart);
-    
+
     if (textBefore.endsWith('[[')) {
         showWikiPopover(e.target);
     } else if (textBefore.endsWith('/')) {
@@ -281,7 +281,7 @@ async function searchWikiLinks(query) {
         wikiResults.innerHTML = '';
         return;
     }
-    
+
     const response = await window.crabNote.searchNotes(query);
     if (response && response.success) {
         wikiResultsData = response.data;
@@ -292,7 +292,7 @@ async function searchWikiLinks(query) {
 function renderWikiResults() {
     wikiResults.innerHTML = '';
     wikiSelectedIndex = 0;
-    
+
     wikiResultsData.forEach((result, index) => {
         const li = document.createElement('li');
         li.className = `wiki-item ${index === 0 ? 'selected' : ''}`;
@@ -300,7 +300,7 @@ function renderWikiResults() {
         li.addEventListener('click', () => insertWikiLink(result.title));
         wikiResults.appendChild(li);
     });
-    
+
     if (wikiResultsData.length === 0) {
         hideWikiPopover();
     }
@@ -311,7 +311,7 @@ function insertWikiLink(title) {
     const selectionStart = noteBodyInput.selectionStart;
     const textBefore = value.substring(0, selectionStart);
     const lastIndex = textBefore.lastIndexOf('[[');
-    
+
     const newValue = value.substring(0, lastIndex) + `[[${title}]]` + value.substring(selectionStart);
     noteBodyInput.value = newValue;
     hideWikiPopover();
@@ -349,8 +349,8 @@ function hideSlashMenu() {
 
 function renderSlashMenu() {
     slashMenuList.innerHTML = '';
-    const filtered = slashCommands.filter(cmd => 
-        cmd.search.includes(slashQuery.toLowerCase()) || 
+    const filtered = slashCommands.filter(cmd =>
+        cmd.search.includes(slashQuery.toLowerCase()) ||
         cmd.label.toLowerCase().includes(slashQuery.toLowerCase())
     );
 
@@ -376,21 +376,21 @@ function applySlashCommand(cmd) {
     const value = noteBodyInput.value;
     const end = noteBodyInput.selectionStart;
     const start = end - slashQuery.length - 1; // -1 for the '/'
-    
+
     const before = value.substring(0, start);
     const after = value.substring(end);
-    
+
     noteBodyInput.value = before + cmd.syntax + after;
-    
+
     hideSlashMenu();
     noteBodyInput.focus();
-    
+
     // Set caret position after syntax
     const newPos = start + cmd.syntax.indexOf('\n') !== -1 ? start + (cmd.syntax.length / 2) : start + cmd.syntax.length;
     // For code blocks we want it inside
     let finalPos = start + cmd.syntax.length;
     if (cmd.syntax.startsWith('```')) finalPos = start + 4;
-    
+
     noteBodyInput.setSelectionRange(finalPos, finalPos);
     saveCurrentNote();
 }
@@ -425,7 +425,7 @@ function getCaretCoordinates(element, position) {
     });
 
     div.textContent = element.value.substring(0, position);
-    
+
     const span = document.createElement('span');
     span.textContent = element.value.substring(position) || '.';
     div.appendChild(span);
@@ -447,8 +447,8 @@ function getCaretCoordinates(element, position) {
 noteBodyInput.addEventListener('keydown', (e) => {
     // 1. Handle Slash Menu
     if (isSlashMenuOpen) {
-        const filtered = slashCommands.filter(cmd => 
-            cmd.search.includes(slashQuery.toLowerCase()) || 
+        const filtered = slashCommands.filter(cmd =>
+            cmd.search.includes(slashQuery.toLowerCase()) ||
             cmd.label.toLowerCase().includes(slashQuery.toLowerCase())
         );
 
@@ -494,7 +494,7 @@ noteBodyInput.addEventListener('keydown', (e) => {
 function updateWikiSelection(dir) {
     const items = wikiResults.querySelectorAll('.wiki-item');
     if (items.length === 0) return;
-    
+
     items[wikiSelectedIndex].classList.remove('selected');
     wikiSelectedIndex = (wikiSelectedIndex + dir + items.length) % items.length;
     items[wikiSelectedIndex].classList.add('selected');
@@ -523,7 +523,7 @@ togglePreviewBtn.addEventListener('click', async () => {
 
 async function renderPreview() {
     let content = noteBodyInput.value;
-    
+
     // 1. Unwatch old files
     for (const path of currentWatchedFiles) {
         window.crabNote.unwatchFile(path);
@@ -535,7 +535,7 @@ async function renderPreview() {
     content = content.replace(wikiLinkRegex, (match, title) => {
         return `<span class="wiki-link" data-title="${title}">${title}</span>`;
     });
-    
+
     // 3. Markdown Formatting (Headings, Bold, Italic, HR)
     // Headings (only at start of line)
     content = content.replace(/^# (.*$)/gm, '<h1>$1</h1>');
@@ -562,23 +562,23 @@ async function renderPreview() {
             <span class="task-text">${text}</span>
         </div>`;
     });
-    
+
     // 4. Custom Code/Embed Parser
     // Process code blocks first to protect from <br> injection
     const codeBlocks = [];
     const codeRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    
+
     let match;
     while ((match = codeRegex.exec(content)) !== null) {
         const lang = match[1] || 'plaintext';
         const code = match[2];
         const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-        
+
         if (lang === 'embed') {
             const filePath = code.trim();
             const response = await window.crabNote.readFile(filePath);
             const fileContent = response.success ? response.data : `Error: ${response.error || 'File not found'}`;
-            
+
             // Watch it
             window.crabNote.watchFile(filePath);
             currentWatchedFiles.add(filePath);
@@ -596,7 +596,7 @@ async function renderPreview() {
                 <pre class="language-${lang}"><code>${code}</code><button class="copy-btn">Copy</button></pre>
             `);
         }
-        
+
         content = content.slice(0, match.index) + placeholder + content.slice(codeRegex.lastIndex);
         codeRegex.lastIndex = match.index + placeholder.length;
     }
@@ -613,7 +613,7 @@ async function renderPreview() {
             html += `<th>${header}</th>`;
         });
         html += '</tr></thead><tbody>';
-        
+
         bodyRows.forEach(row => {
             html += '<tr>';
             row.forEach(cell => {
@@ -633,14 +633,14 @@ async function renderPreview() {
         if (line.includes('<h1>') || line.includes('</h1>') || line.includes('<h2>') || line.includes('</h2>') || line.includes('<h3>') || line.includes('</h3>') || line.includes('<hr>')) return line;
         return line + '<br>';
     }).join('');
-    
+
     // Restore code blocks
     codeBlocks.forEach((html, i) => {
         content = content.replace(`__CODE_BLOCK_${i}__`, html);
     });
-    
+
     notePreview.innerHTML = content;
-    
+
     // Highlight all blocks
     if (window.Prism) Prism.highlightAllUnder(notePreview);
 
@@ -678,10 +678,10 @@ function copyCode(btn) {
 async function openDailyNote() {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
+
     // Check if it exists
     let note = notes.find(n => n.title === todayStr);
-    
+
     if (!note) {
         // Create it
         const template = `# Daily Note: ${todayStr}\n\n## Tasks\n- [ ] `;
@@ -691,7 +691,7 @@ async function openDailyNote() {
             content: template,
             tags: ['daily']
         };
-        
+
         if (window.crabNote && window.crabNote.saveNote) {
             const response = await window.crabNote.saveNote(newNote);
             if (response && response.success) {
@@ -704,7 +704,7 @@ async function openDailyNote() {
             note = newNote;
         }
     }
-    
+
     if (note) {
         await selectNote(note.id);
         // Automatically switch to Preview for daily notes? Maybe not, let user decide.
@@ -716,16 +716,16 @@ async function openDailyNote() {
 async function toggleTask(checkbox, originalMarkdownLine) {
     const isChecked = checkbox.checked;
     const newMarkdownLine = isChecked ? originalMarkdownLine.replace('[ ]', '[x]') : originalMarkdownLine.replace('[x]', '[ ]');
-    
+
     // Update raw content
     const rawContent = noteBodyInput.value;
     const updatedContent = rawContent.replace(originalMarkdownLine, newMarkdownLine);
-    
+
     noteBodyInput.value = updatedContent;
-    
+
     // UI Feedback
     checkbox.parentElement.classList.toggle('checked', isChecked);
-    
+
     // Save
     saveStatus.textContent = 'Saving task...';
     await saveCurrentNote();
@@ -761,7 +761,7 @@ async function renderNotesList() {
     tags.forEach(tag => {
         const section = document.createElement('div');
         section.className = `tag-group ${expandedTags.has(tag) ? 'expanded' : ''}`;
-        
+
         const header = document.createElement('div');
         header.className = 'tag-header';
         header.innerHTML = `
@@ -770,7 +770,7 @@ async function renderNotesList() {
             <span class="tag-count">${groups[tag].length}</span>
         `;
         header.addEventListener('click', () => toggleTagSection(tag));
-        
+
         const content = document.createElement('div');
         content.className = 'tag-content';
         const inner = document.createElement('div');
@@ -826,7 +826,7 @@ function showContextMenu(e, type, target) {
     // Show/Hide relevant items
     ctxDeleteNote.classList.toggle('hidden', type !== 'note');
     ctxEditTags.classList.toggle('hidden', type !== 'note');
-    
+
     // Rename Tag Globally: show if it's a real tag OR a note under a real tag
     const isRealTag = activeTag && activeTag !== 'Untagged';
     ctxRenameTag.classList.toggle('hidden', !isRealTag); // Re-enabled for notes too!
@@ -834,10 +834,10 @@ function showContextMenu(e, type, target) {
     // Show menu and overlay
     contextMenu.classList.remove('hidden');
     contextMenuOverlay.classList.remove('hidden');
-    
+
     // Initialize icons immediately while visible
     if (window.lucide) lucide.createIcons();
-    
+
     // Positioning
     const posX = e.clientX;
     const posY = e.clientY;
@@ -863,8 +863,8 @@ function hideContextMenu() {
 
 // Global Overlay and Escape Key closing
 contextMenuOverlay.addEventListener('mousedown', hideContextMenu);
-window.addEventListener('keydown', (e) => { 
-    if(e.key === 'Escape') hideContextMenu(); 
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideContextMenu();
 });
 
 ctxDeleteNote.addEventListener('click', (e) => {
@@ -877,18 +877,18 @@ ctxDeleteNote.addEventListener('click', (e) => {
 ctxEditTags.addEventListener('click', async (e) => {
     e.stopPropagation();
     const targetId = contextTargetId;
-    hideContextMenu(); 
+    hideContextMenu();
     if (!targetId) return;
 
     modalTargetId = targetId;
-    
+
     // Fetch existing note to get current tags precisely
     const response = await window.crabNote.getNotes();
     if (!response || !response.success) {
         saveStatus.textContent = 'Failed to fetch tags';
         return;
     }
-    
+
     const allNotes = response.data;
     const targetNote = allNotes.find(n => n.id === targetId);
     if (!targetNote) return;
@@ -904,7 +904,7 @@ ctxEditTags.addEventListener('click', async (e) => {
 ctxRenameTag.addEventListener('click', async (e) => {
     e.stopPropagation();
     const targetTag = contextTargetTag;
-    hideContextMenu(); 
+    hideContextMenu();
     if (!targetTag || targetTag === 'Untagged') return;
 
     modalTargetTag = targetTag;
@@ -919,7 +919,7 @@ ctxRenameTag.addEventListener('click', async (e) => {
 // Tag Modal Handlers
 tagModalSave.addEventListener('click', async () => {
     const inputVal = tagEditorInput.value.trim();
-    
+
     if (tagModalMode === 'note') {
         const newTags = inputVal.split(',').map(t => t.trim()).filter(t => t !== "");
         if (window.crabNote && window.crabNote.updateNoteTags) {
@@ -992,7 +992,7 @@ async function deleteNoteById(id) {
         const response = await window.crabNote.deleteNote(id);
         if (response && response.success) {
             notes = notes.filter(n => n.id !== id);
-            
+
             if (currentNoteId === id) {
                 if (notes.length > 0) {
                     await selectNote(notes[0].id);
@@ -1049,7 +1049,7 @@ async function selectNote(id) {
     if (note) {
         noteTitleInput.value = note.title;
         noteBodyInput.value = note.content;
-        
+
         // If preview is active, re-render it
         if (!notePreview.classList.contains('hidden')) {
             await renderPreview();
@@ -1071,11 +1071,11 @@ function renderTabs() {
 
         const tab = document.createElement('div');
         tab.className = `tab ${id === currentNoteId ? 'active' : ''}`;
-        
+
         const titleSpan = document.createElement('span');
         titleSpan.className = 'tab-title';
         titleSpan.textContent = (id === 0 ? 'Untitled' : (note ? note.title : 'Untitled')) || 'Untitled';
-        
+
         const closeBtn = document.createElement('div');
         closeBtn.className = 'tab-close';
         closeBtn.innerHTML = '<i data-lucide="x"></i>';
@@ -1172,12 +1172,12 @@ function createNewNote() {
         tags: []
     };
     notes.unshift(newNote); // Add to top of list
-    
+
     // For new note, we add it to tabs if not already opening one
     if (!openNoteIds.includes(0)) {
         openNoteIds.push(0);
     }
-    
+
     selectNote(newNote.id);
     noteTitleInput.focus();
 }
@@ -1189,14 +1189,14 @@ async function performSave() {
     if (currentNoteId === null) return;
 
     saveStatus.textContent = 'Saving...';
-    
+
     const noteIndex = notes.findIndex(n => n.id === currentNoteId);
     if (noteIndex > -1) {
         // Optimistic UI update
         notes[noteIndex].title = noteTitleInput.value;
         notes[noteIndex].content = noteBodyInput.value;
         renderNotesList();
-        
+
         // API call to main process via context bridge
         if (window.crabNote && window.crabNote.saveNote) {
             const response = await window.crabNote.saveNote(notes[noteIndex]);
@@ -1205,7 +1205,7 @@ async function performSave() {
                 if (notes[noteIndex].id === 0) {
                     const tabIndex = openNoteIds.indexOf(0);
                     if (tabIndex !== -1) openNoteIds[tabIndex] = savedNote.id;
-                    
+
                     // Update dirtyNoteIds mapping if it was 0
                     if (dirtyNoteIds.has(0)) {
                         dirtyNoteIds.delete(0);
@@ -1286,10 +1286,10 @@ function saveSettings() {
 noteTitleInput.addEventListener('input', () => {
     if (currentNoteId !== null) dirtyNoteIds.add(currentNoteId);
     saveStatus.textContent = 'Unsaved changes';
-    
+
     // Update tab title live
     renderTabs();
-    
+
     saveCurrentNote();
 });
 
@@ -1323,12 +1323,19 @@ async function init() {
         createNewNote();
     }
 
-    if (window.lucide) lucide.createIcons();
+    if (window.lucide) {
+        setTimeout(() => lucide.createIcons(), 100);
+    }
 }
 
-    // Start
-    init();
+// Start
+init();
 
-    // Load Theme
-    const savedTheme = localStorage.getItem('crabnote-theme') || 'dark';
-    setTheme(savedTheme);
+// Load Theme
+const savedTheme = localStorage.getItem('crabnote-theme') || 'dark';
+setTheme(savedTheme);
+
+// Final icon pass
+if (window.lucide) {
+    setTimeout(() => lucide.createIcons(), 500);
+}

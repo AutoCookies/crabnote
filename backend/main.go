@@ -56,6 +56,8 @@ func main() {
 	initWatcher()
 
 	http.HandleFunc("/notes", handleNotes)
+	http.HandleFunc("/create_note", handleNotes) // Alias for Agent Skill
+	http.HandleFunc("/search_notes", handleNotes) // Alias for Agent Skill
 	http.HandleFunc("/notes/grouped", handleGroupedNotes)
 	http.HandleFunc("/notes/rename-tag", handleRenameTag)
 	http.HandleFunc("/notes/update-tags", handleUpdateNoteTags)

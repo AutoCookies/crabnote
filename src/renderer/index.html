@@ -5,13 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'">
+        content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self' http://127.0.0.1:11435">
     <title>Crab Note</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="lib/prism.css">
-    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="/vendor/lucide.min.js"></script>
     <script src="lib/prism.js" defer></script>
+    <script src="shim.js"></script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-title">
-                    <img src="../../assets/logo.png" alt="Crab" width="24" height="24">
+                    <img src="../assets/logo.png" alt="Crab" width="24" height="24">
                     <span>Crab Note</span>
                 </div>
                 <button id="toggle-sidebar" title="Collapse Sidebar" class="icon-button">
@@ -130,7 +131,8 @@
                 <h3>Unsaved Changes</h3>
             </div>
             <div class="modal-body">
-                <p id="unsaved-modal-desc">"Note Title" has unsaved changes. Do you want to save them before closing?</p>
+                <p id="unsaved-modal-desc">"Note Title" has unsaved changes. Do you want to save them before closing?
+                </p>
             </div>
             <div class="modal-footer">
                 <button id="unsaved-modal-cancel" class="tool-btn">Cancel</button>
